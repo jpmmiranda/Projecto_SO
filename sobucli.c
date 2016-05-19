@@ -11,11 +11,9 @@ int main(int args, char* argv[]){
 	char* opcao;
 	char* ficheiro;
 	char buffer[TAM];
-	mkfifo("/tmp/sobucli_fifo",0666);
 
 	if(args == 3){
 		int fs = open("/tmp/sobusrv_fifo",O_WRONLY);
-		int fc = open("/tmp/sobucli_fifo",O_RDONLY);
 		opcao = strdup(argv[1]);
 		ficheiro = strdup(argv[2]);
 		
@@ -25,11 +23,6 @@ int main(int args, char* argv[]){
 		if(cmp == 0){
 			write(fs, opcao, t);
 		}
-
-		while((t=read(fc,buffer,TAM)) > 0){
-        	write(1,buffer,t);
-		}			
-		close(fc);
 		close(fs);
 	}
 
