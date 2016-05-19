@@ -8,8 +8,12 @@
 
 #define TAM 1024
 
+int backup(char* ficheiro, )
+
+
+
 int main(int args, char* argv[]){
-	int t;
+	int t, resultado;
 	char buffer[TAM], directoria[TAM], username[TAM], opcao[TAM], ficheiro[TAM];
 	printf("\033c");
 	printf("A aguardar...\n");
@@ -24,13 +28,8 @@ int main(int args, char* argv[]){
         sscanf(buffer,"%s %s", opcao, ficheiro);
         printf("\n");
         if(strcmp(opcao, "backup")==0){
-        	printf("lol\n");
-	        	execlp("gzip","gzip", ficheiro, NULL);
-	        	execlp("sha1sum","sha1sum", strcat(ficheiro,".gz"), NULL);
+        	resultado = backup(ficheiro);
 		}
-
-
-
 
 
 
