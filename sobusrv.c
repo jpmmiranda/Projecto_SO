@@ -40,11 +40,12 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 		bytes = read(p[0], buffer, TAM);
 		close(p[0]);
 	}
-	
-	char *nomeSum = strtok(buffer, " ");
-	char* nomeData = (char*)malloc(sizeof(directoriaData)+sizeof(nomeSum));
-	strcat(nomeData,directoriaData);
+	char *nomeSum = (char*)malloc(bytes*sizeof(char));
+	nomeSum = strtok(buffer, " ");
+	char* nomeData = (char*)malloc(sizeof(directoriaData)+sizeof(nomeSum)+1);
+	nomeData = strdup(directoriaData);
 	strcat(nomeData, nomeSum);
+
 	if(fork() == 0){
 		if(fork() == 0){
 			if(execlp("mv","mv",ficheiroZip, nomeSum, NULL)==-1){
@@ -87,8 +88,8 @@ int restore(char* ficheiro, char* directoriaMetadata){
 	int p[2];
 	char buffer[TAM];
 	char *ficheiroZip = strdup(ficheiro); strcat(ficheiroZip,".gz");
-	char* nomeLink = (char*) malloc(sizeof(directoriaMetadata)+sizeof(ficheiro));
-	strcat(nomeLink, directoriaMetadata);
+	char* nomeLink = (char*) malloc(sizeof(directoriaMetadata)+sizeof(ficheiro)+1);
+	nomeLink = strdup(directoriaMetadata);
 	strcat(nomeLink, ficheiro);
 
 	sucesso = pipe(p);
@@ -137,6 +138,7 @@ int restore(char* ficheiro, char* directoriaMetadata){
 int main(int args, char* argv[]){
 	int t, resultado;
 	char buffer[TAM], directoriaData[TAM], directoriaMetadata[TAM], username[TAM], opcao[TAM], ficheiro[TAM];
+	char *OF;
 	printf("\033c");
 	printf("A aguardar...\n");
 	getlogin_r(username,TAM);
@@ -147,9 +149,10 @@ int main(int args, char* argv[]){
 	int fs = open("/tmp/sobusrv_fifo", O_RDWR);
 	while((t=read(fs,buffer,TAM)) >= 0){
 		resultado = 1;
-		memset(opcao, 0, sizeof(opcao));
-		memset(ficheiro, 0, sizeof(ficheiro));
-        sscanf(buffer,"%s %s", opcao, ficheiro);
+		OF = strdup(buffer);
+        sscanf(OF,"%s %s", opcao, ficheiro);
+        buffer[0] = '\0';
+        OF[0] = '\0';
         if(strcmp(opcao, "backup")==0){
         	resultado = backup(ficheiro, directoriaData, directoriaMetadata);
         	if(resultado == 0){
