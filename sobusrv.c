@@ -145,26 +145,24 @@ int main(int args, char* argv[]){
 	mkfifo("/tmp/sobusrv_fifo",0666);
 
 	int fs = open("/tmp/sobusrv_fifo", O_RDWR);
-	while(1){
+	while((t=read(fs,buffer,TAM)) >= 0){
 		resultado = 1;
-		while((t=read(fs,buffer,TAM)) >= 0){
-			memset(opcao, 0, sizeof(opcao));
-			memset(ficheiro, 0, sizeof(ficheiro));
-	        sscanf(buffer,"%s %s", opcao, ficheiro);
-	        if(strcmp(opcao, "backup")==0){
-	        	resultado = backup(ficheiro, directoriaData, directoriaMetadata);
-	        	if(resultado == 0){
-	        		printf("Backup executado com sucesso.\n");
-	        	}
-			}
-			else if(strcmp(opcao, "restore") == 0){
-				resultado = restore(ficheiro, directoriaMetadata);
-				if(resultado == 0){
-	        		printf("Restore executado com sucesso.\n");
-	        	}
-			}
-		} 
-	}
+		memset(opcao, 0, sizeof(opcao));
+		memset(ficheiro, 0, sizeof(ficheiro));
+        sscanf(buffer,"%s %s", opcao, ficheiro);
+        if(strcmp(opcao, "backup")==0){
+        	resultado = backup(ficheiro, directoriaData, directoriaMetadata);
+        	if(resultado == 0){
+        		printf("Backup executado com sucesso.\n");
+        	}
+		}
+		else if(strcmp(opcao, "restore") == 0){
+			resultado = restore(ficheiro, directoriaMetadata);
+			if(resultado == 0){
+        		printf("Restore executado com sucesso.\n");
+        	}
+		}
+	} 
 
     return 0;
 
