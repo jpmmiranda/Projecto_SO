@@ -5,11 +5,14 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #define TAM 1024
 
+int pidCliente;
+
 int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
-	int f1,f2, sucesso, bytes;
+	int f1,f2, sucesso = 1, bytes;
 	int p[2];
 	char buffer[TAM];
 	char *ficheiroZip = strdup(ficheiro); strcat(ficheiroZip,".gz");
@@ -18,6 +21,7 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 	if(f1==0){
 		printf("Processo filho a executar o backup..\n");
 		if(execlp("gzip","gzip", ficheiro, NULL)==-1){
+			kill(pidCliente,SIGQUIT);
 			perror("Gzip");
 			return -1;
 		}
@@ -30,7 +34,8 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 			dup2(p[1],1);
 			close(p[0]);
 			if(execlp("sha1sum","sha1sum", ficheiroZip, NULL)==-1){
-				perror("sha1sum");
+				kill(pidCliente,SIGQUIT);
+				perror("Sha1sum");
 				return -1;
 			}
 			close(p[1]);
@@ -49,12 +54,14 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 	if(fork() == 0){
 		if(fork() == 0){
 			if(execlp("mv","mv",ficheiroZip, nomeSum, NULL)==-1){
-			 perror("Renomear o ficheiro");
-			 return -1;
+				kill(pidCliente,SIGQUIT);
+			 	perror("Renomear o ficheiro");
+			 	return -1;
 			}
 		}
 		wait();
 		if(execlp("mv","mv",nomeSum, directoriaData, NULL)==-1){
+			kill(pidCliente,SIGQUIT);
 			perror("Mover para data"); 
 			return -1;
 		}
@@ -63,6 +70,7 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 		wait();
 		if(fork()==0){
 			if(execlp("ln", "ln", "-s", nomeData, ficheiro, NULL)==-1){
+				kill(pidCliente,SIGQUIT);
 				perror("Criar link");	
 				return -1;
 			}
@@ -71,6 +79,7 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 			wait();
 			if(fork()==0){
 				if(execlp("mv","mv",ficheiro, directoriaMetadata, NULL)==-1){
+					kill(pidCliente,SIGQUIT);
 				perror("Mover para metadata");
 				return -1;
 				}
@@ -98,6 +107,7 @@ int restore(char* ficheiro, char* directoriaMetadata){
 		dup2(p[1],1);
 		close(p[0]);
 		if(execlp("readlink","readlink", nomeLink, NULL)==-1){
+			kill(pidCliente,SIGQUIT);
 			perror("readlink falhou.");
 			return -1;
 		}
@@ -113,6 +123,7 @@ int restore(char* ficheiro, char* directoriaMetadata){
 
 	if(fork()==0){
 		if(execlp("mv","mv",pathLink, ficheiroZip,NULL)==-1){
+			kill(pidCliente,SIGQUIT);
 			perror("Restore move falhou.");
 			return -1;
 		}
@@ -121,6 +132,7 @@ int restore(char* ficheiro, char* directoriaMetadata){
 		wait();
 		if(fork()==0){
 			if(execlp("gunzip","gunzip",ficheiroZip,NULL)==-1){
+				kill(pidCliente,SIGQUIT);
 				perror("Unzip falhou.");
 				return -1;
 			}
@@ -138,32 +150,35 @@ int restore(char* ficheiro, char* directoriaMetadata){
 int main(int args, char* argv[]){
 	int t, resultado;
 	char buffer[TAM], directoriaData[TAM], directoriaMetadata[TAM], username[TAM], opcao[TAM], ficheiro[TAM];
-	char *OF;
+	
 	printf("\033c");
 	printf("A aguardar...\n");
 	getlogin_r(username,TAM);
 	sprintf(directoriaData,"/home/%s/.Backup/data/",username);
 	sprintf(directoriaMetadata,"/home/%s/.Backup/metadata/",username);
 	mkfifo("/tmp/sobusrv_fifo",0666);
-
 	int fs = open("/tmp/sobusrv_fifo", O_RDWR);
+	
 	while((t=read(fs,buffer,TAM)) >= 0){
 		resultado = 1;
-		OF = strdup(buffer);
-        sscanf(OF,"%s %s", opcao, ficheiro);
-        buffer[0] = '\0';
-        OF[0] = '\0';
+		char *OF = strndup(buffer,t);
+		sscanf(OF,"%s %s %d", opcao, ficheiro, &pidCliente);
+        
         if(strcmp(opcao, "backup")==0){
         	resultado = backup(ficheiro, directoriaData, directoriaMetadata);
         	if(resultado == 0){
         		printf("Backup executado com sucesso.\n");
+				kill(pidCliente,SIGUSR1);
         	}
+        	else kill(pidCliente,SIGQUIT);
 		}
 		else if(strcmp(opcao, "restore") == 0){
 			resultado = restore(ficheiro, directoriaMetadata);
 			if(resultado == 0){
         		printf("Restore executado com sucesso.\n");
+        		kill(pidCliente,SIGUSR2);
         	}
+        	else kill(pidCliente,SIGQUIT);
 		}
 	} 
 
