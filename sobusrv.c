@@ -82,8 +82,51 @@ int backup(char* ficheiro, char* directoriaData, char* directoriaMetadata){
 
 
 
-int restore(char* ficheiro, char* directoriaData, char* directoriaMetadata){
-	
+int restore(char* ficheiro, char* directoriaMetadata){
+	int sucesso, bytes;
+	int p[2];
+	char buffer[TAM];
+	char *ficheiroZip = strdup(ficheiro); strcat(ficheiroZip,".gz");
+	char* nomeLink = (char*) malloc(sizeof(directoriaMetadata)+sizeof(ficheiro));
+	strcat(nomeLink, directoriaMetadata);
+	strcat(nomeLink, ficheiro);
+
+	sucesso = pipe(p);
+	if(fork()==0){
+		printf("Processo filho a executar o restore..\n");
+		dup2(p[1],1);
+		close(p[0]);
+		if(execlp("readlink","readlink", nomeLink, NULL)==-1){
+			perror("readlink falhou.");
+			return -1;
+		}
+		close(p[1]);
+	}
+	dup2(p[0],0);
+	close(p[1]);
+	bytes = read(p[0],buffer,TAM);
+	close(p[0]);
+
+	char* pathLink = strtok(buffer,"\n");
+	printf("Link: %s, bytes: %d\n",pathLink, bytes );
+
+	if(fork()==0){
+		if(execlp("mv","mv",pathLink, ficheiroZip,NULL)==-1){
+			perror("Restore move falhou.");
+			return -1;
+		}
+	}
+	else{
+		wait();
+		if(fork()==0){
+			if(execlp("gunzip","gunzip",ficheiroZip,NULL)==-1){
+				perror("Unzip falhou.");
+				return -1;
+			}
+		}
+	}
+	return 0;
+
 }
 
 
@@ -105,9 +148,9 @@ int main(int args, char* argv[]){
 	while(1){
 		resultado = 1;
 		while((t=read(fs,buffer,TAM)) >= 0){
-	        write(1,buffer,t);
-	        sscanf(buffer,"%s %s", opcao, ficheiro); strcat(opcao,"\0"); strcat(ficheiro,"\0");
-	        printf("\n");
+			memset(opcao, 0, sizeof(opcao));
+			memset(ficheiro, 0, sizeof(ficheiro));
+	        sscanf(buffer,"%s %s", opcao, ficheiro);
 	        if(strcmp(opcao, "backup")==0){
 	        	resultado = backup(ficheiro, directoriaData, directoriaMetadata);
 	        	if(resultado == 0){
