@@ -148,8 +148,8 @@ int restore(char* ficheiro, char* directoriaMetadata){
 
 
 int main(int args, char* argv[]){
-	int t, resultado;
-	char buffer[TAM], directoriaData[TAM], directoriaMetadata[TAM], username[TAM], opcao[TAM], ficheiro[TAM];
+	int t, resultado, existe;
+	char buffer[TAM], directoriaData[TAM], directoriaMetadata[TAM],pathFicheiro[TAM], username[TAM], opcao[TAM], ficheiro[TAM];
 	
 	printf("\033c");
 	printf("A aguardar...\n");
@@ -163,7 +163,8 @@ int main(int args, char* argv[]){
 		resultado = 1;
 		char *OF = strndup(buffer,t);
 		sscanf(OF,"%s %s %d", opcao, ficheiro, &pidCliente);
-        
+        sprintf(pathFicheiro,"%s%s",directoriaMetadata,ficheiro);
+
         if(strcmp(opcao, "backup")==0){
         	resultado = backup(ficheiro, directoriaData, directoriaMetadata);
         	if(resultado == 0){
@@ -173,12 +174,15 @@ int main(int args, char* argv[]){
         	else kill(pidCliente,SIGQUIT);
 		}
 		else if(strcmp(opcao, "restore") == 0){
-			resultado = restore(ficheiro, directoriaMetadata);
-			if(resultado == 0){
-        		printf("Restore executado com sucesso.\n");
-        		kill(pidCliente,SIGUSR2);
-        	}
-        	else kill(pidCliente,SIGQUIT);
+			existe = access(pathFicheiro,F_OK);
+			if(existe == 0){
+				resultado = restore(ficheiro, directoriaMetadata);
+				if(resultado == 0){
+	        		printf("Restore executado com sucesso.\n");
+	        		kill(pidCliente,SIGUSR2);
+	        	}
+	        }
+	        else kill(pidCliente,SIGTERM);
 		}
 	} 
 

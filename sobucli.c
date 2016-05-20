@@ -9,6 +9,7 @@
 
 void erro(int br){
 	printf("Erro a executar.\n");
+	_exit(0);
 }
 
 void backup(int b){
@@ -17,6 +18,11 @@ void backup(int b){
 
 void restore(int r){
 	printf("Restore concluido.\n");
+}
+
+void naoExiste(int r){
+	printf("Link não existe.\n");
+	_exit(0);
 }
 
 int main(int args, char* argv[]){
@@ -28,22 +34,46 @@ int main(int args, char* argv[]){
 	char buffer[TAM];
 
 	if(args == 3){
-		int fs = open("/tmp/sobusrv_fifo",O_RDWR);
+		int fs = open("/tmp/sobusrv_fifo",O_WRONLY);
 		opcao = strdup(argv[1]);
 		ficheiro = strdup(argv[2]);
 		
-		strcat(opcao," ");
-		strcat(opcao, ficheiro);
-		strcat(opcao, pidCliente);
-		t = strlen(opcao);
-		signal(SIGQUIT, erro);
-		signal(SIGUSR1, backup);
-		signal(SIGUSR2, restore);
-		if(cmp == 0){
-			write(fs, opcao, t);
-			pause();
+
+		if(strcmp(opcao,"backup")==0){
+			int existe = access(ficheiro, F_OK);
+			if(existe==0){
+				signal(SIGKILL, erro);
+				signal(SIGUSR1, backup);
+				strcat(opcao," ");
+				strcat(opcao, ficheiro);
+				strcat(opcao, pidCliente);
+				t = strlen(opcao);
+				if(cmp == 0){
+					write(fs, opcao, t);
+					pause();
+				}
+				close(fs);
+			}
+			else printf("Ficheiro não existe.\n");
 		}
-		close(fs);
+		else if(strcmp(opcao,"restore")==0){
+			int existe = access(ficheiro, F_OK);
+			if(existe!=0){	
+				signal(SIGQUIT, erro);
+				signal(SIGUSR2, restore);
+				signal(SIGTERM, naoExiste);
+				strcat(opcao," ");
+				strcat(opcao, ficheiro);
+				strcat(opcao, pidCliente);
+				t = strlen(opcao);
+				if(cmp == 0){
+					write(fs, opcao, t);
+					pause();
+				}
+				close(fs);
+			}
+			else printf("Ficheiro já existe com esse nome.\n");
+		}
 	}
 
 	else if(args<3){
@@ -52,5 +82,5 @@ int main(int args, char* argv[]){
 	else if(args>3){
 		printf("Demasiados argumentos para a execução do programa.\n");
 	}
-
+	return 0;
 }
