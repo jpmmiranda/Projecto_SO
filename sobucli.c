@@ -49,7 +49,7 @@ int main(int args, char* argv[]){
 				strcat(opcao, pidCliente);
 				t = strlen(opcao);
 				if(cmp == 0){
-					write(fs, opcao, t);
+					int i = write(fs, opcao, t);
 					pause();
 				}
 				close(fs);
@@ -67,7 +67,7 @@ int main(int args, char* argv[]){
 				strcat(opcao, pidCliente);
 				t = strlen(opcao);
 				if(cmp == 0){
-					write(fs, opcao, t);
+					int i =write(fs, opcao, t);
 					pause();
 				}
 				close(fs);
