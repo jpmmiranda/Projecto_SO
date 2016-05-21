@@ -155,7 +155,9 @@ int main(int args, char* argv[]){
 	printf("A aguardar...\n");
 	getlogin_r(username,TAM);
 	sprintf(directoriaData,"/home/%s/.Backup/data/",username);
+	execlp("mkdir","mkdir",directoriaData);
 	sprintf(directoriaMetadata,"/home/%s/.Backup/metadata/",username);
+	execlp("mkdir","mkdir",directoriaMetadata);
 	mkfifo("/tmp/sobusrv_fifo",0666);
 	int fs = open("/tmp/sobusrv_fifo", O_RDWR);
 	
