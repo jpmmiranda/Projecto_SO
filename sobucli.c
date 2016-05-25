@@ -33,7 +33,7 @@ int main(int args, char* argv[]){
 	sprintf(pidCliente," %d",getpid());
 	char buffer[TAM];
 
-	if(args == 3){
+	if(args >= 3){
 		int fs = open("/tmp/sobusrv_fifo",O_WRONLY);
 		opcao = strdup(argv[1]);
 		ficheiro = strdup(argv[2]);
